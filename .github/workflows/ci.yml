@@ -1,0 +1,28 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate Python and manifest
+        run: |
+          python -m py_compile server.py scripts/validate_manifest.py
+          python scripts/validate_manifest.py
+      - name: Validate browser JavaScript
+        run: |
+          node --check static/runtime.js
+          node --check static/app.js

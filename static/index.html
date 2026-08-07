@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A joyful, local-first Python practice workspace with lessons, tests, and a stateful REPL.">
+  <meta name="theme-color" content="#171717">
+  <title>Pyquest — Python practice IDE</title>
+  <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+  <header class="appbar" data-tour="toolbar">
+    <div class="appbar-left">
+      <div class="brand-mark" aria-hidden="true">Py</div>
+      <button class="nav-button lessons-button" id="lessons-button" aria-expanded="false">☰ <span>Lessons</span></button>
+      <div class="lesson-nav" aria-label="Lesson navigation">
+        <button class="icon-button" id="previous-lesson" aria-label="Previous lesson">←</button>
+        <button class="icon-button" id="next-lesson" aria-label="Next lesson">→</button>
+      </div>
+    </div>
+    <div class="run-toolbar">
+      <button class="toolbar-button secondary" id="run-demo" title="Run the demonstration">▶ Demo</button>
+      <button class="toolbar-button primary" id="run-tests" title="Run focused tests (Ctrl/Cmd + Enter)">✓ Run checks</button>
+    </div>
+    <div class="appbar-right">
+      <div class="stat">⚡ <strong id="xp">0</strong> XP</div>
+      <div class="stat streak">🔥 <strong id="streak">0</strong></div>
+      <button class="icon-button" id="sound" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+      <button class="icon-button" id="help-tour" title="Take the workspace tour" aria-label="Take the workspace tour">?</button>
+    </div>
+  </header>
+
+  <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+  <aside class="lesson-drawer" id="lesson-drawer" aria-hidden="true" hidden>
+    <div class="drawer-head"><div><span class="eyebrow">Python: Zero to Hero</span><h2>Your lessons</h2></div><button class="icon-button" id="close-lessons" aria-label="Close lessons">×</button></div>
+    <nav class="lesson-list" id="lessons" aria-label="Lessons"></nav>
+    <div class="progress-card"><div class="progress-row"><span>Starter path</span><strong id="progress-label">0 / 4</strong></div><div class="progress-bar"><i id="progress-bar"></i></div><div class="progress-row footer"><span>Next up</span><strong id="next-label">Lesson 1</strong></div></div>
+  </aside>
+
+  <main class="workspace" id="workspace">
+    <section class="pane problem-pane" id="problem-pane" data-tour="description">
+      <div class="pane-bar problem-tabs">
+        <div class="tabs" role="tablist" aria-label="Problem information">
+          <button class="tab active" id="description-tab" role="tab" aria-selected="true">▣ Description</button>
+          <button class="tab" id="hint-tab" role="tab" aria-selected="false">💡 Hint</button>
+        </div>
+        <span class="completion-chip" id="completion-chip">In progress</span>
+      </div>
+      <div class="problem-scroll" id="problem-scroll">
+        <div class="problem-hero">
+          <p class="eyebrow" id="lesson-number">Loading lesson</p>
+          <div class="title-row"><h1 id="title">Loading…</h1><span class="lesson-badge" id="tag">Starter</span></div>
+          <p class="focus" id="focus"></p>
+          <div class="mission-line"><span>Mission</span><strong id="goal">Get ready to make something work.</strong></div>
+        </div>
+        <article class="instructions" id="instructions">Loading the original lesson instructions…</article>
+        <aside class="hint-panel" id="hint-panel" hidden><span class="hint-icon">💡</span><div><strong>A useful nudge</strong><p id="coach-copy">Try the smallest next step.</p></div></aside>
+      </div>
+      <div class="problem-footer">
+        <button class="subtle-button" id="hint">Reveal hint</button>
+        <button class="next-button" id="next" hidden>Next lesson →</button>
+      </div>
+    </section>
+
+    <div class="splitter" id="splitter" role="separator" aria-label="Resize problem and editor panels" aria-orientation="vertical" aria-valuemin="28" aria-valuemax="70" aria-valuenow="46" tabindex="0" data-tour="splitter"><span></span></div>
+
+    <section class="pane code-pane" id="code-pane" data-tour="editor">
+      <div class="pane-bar code-bar">
+        <div class="code-title"><span class="code-icon">&lt;/&gt;</span><strong>Code</strong></div>
+        <div class="code-actions"><span class="saved-state" id="saved-state">Saved locally</span><button class="subtle-button" id="reset">↺ Reset</button></div>
+      </div>
+      <div class="editor-tools" aria-label="Editor settings"><div class="editor-tools-left"><span class="file-chip" id="file-name">lesson.py</span><span class="language-chip" id="runtime-label">Python 3.13</span><span class="autosave-chip">● Auto-saved</span></div><span class="editor-qol">Cmd/Ctrl + / comment · D duplicate</span></div>
+      <div class="editor-shell" id="editor-shell">
+        <div class="editor-gutter" id="lines" aria-hidden="true">1</div>
+        <div class="editor-active-line" id="active-line" aria-hidden="true"></div>
+        <div class="scope-guides" id="scope-guides" aria-hidden="true"></div>
+        <pre class="editor-highlight" id="highlight" aria-hidden="true"><code id="highlight-code"></code></pre>
+        <textarea id="code" spellcheck="false" aria-label="Editable Python code"></textarea>
+        <div class="completion" id="completion" hidden></div>
+        <div class="editor-status"><span>Ctrl/Cmd + Enter to check</span><span>Ctrl/Cmd + Space to complete</span></div>
+      </div>
+
+      <section class="results-card collapsed" id="results-card" data-tour="results">
+        <div class="results-header"><button class="results-tab" id="results-toggle" aria-expanded="false"><span><i class="result-dot"></i> Test result</span><span class="results-summary" id="run-kind">Ready</span><span class="chevron">⌃</span></button><button class="repl-launch" id="repl-launch" type="button" title="Open the Python REPL">›_ REPL</button></div>
+        <div class="results-resizer" id="results-resizer" role="separator" aria-label="Resize test results" aria-orientation="horizontal" aria-valuemin="160" aria-valuemax="600" aria-valuenow="380" tabindex="0"><span></span></div>
+        <div class="results-body" id="results-body">
+          <div class="run-stack"><div class="run-visual" id="run-visual"><div class="run-top"><strong id="run-label">Ready when you are</strong><span id="run-count">0 checks</span></div><div class="run-bar"><i id="run-progress"></i></div><div class="check-dots" id="check-dots" aria-label="Test progress"></div><div class="feedback-summary" id="feedback-summary">Run the focused checks to see your progress.</div></div><section class="test-list-card" id="test-list-card" hidden><div class="test-list-head"><strong>Checks</strong><span id="test-list-summary">0 checks</span></div><div class="test-list" id="test-list" role="list" aria-label="Individual test results"></div></section></div>
+          <div class="feedback-stack">
+            <section class="issue-card" id="issue-card"><div class="issue-head"><span class="issue-kicker" id="issue-kicker">Next step</span><strong id="issue-title">Your first useful clue will appear here.</strong></div><pre class="issue-output" id="issue-output">Run the focused checks to see the first actionable result.</pre></section>
+            <section class="log-card"><div class="log-tabs" role="tablist" aria-label="Run output"><button class="log-tab" id="log-error" data-log="error" role="tab" aria-selected="false">Errors</button><button class="log-tab active" id="log-console" data-log="console" role="tab" aria-selected="true">Console</button><button class="log-tab" id="log-full" data-log="full" role="tab" aria-selected="false">Full log</button><button class="log-tab repl-tab" id="log-repl" data-log="repl" role="tab" aria-selected="false">REPL</button></div><pre class="output" id="output">Your detailed output will appear here.</pre><div class="repl-panel" id="repl-panel" hidden><div class="repl-head"><div><strong>Interactive Python</strong><span id="repl-source">Starting a fresh session…</span></div><button class="repl-restart" id="repl-restart" type="button" title="Discard variables and restart from current lesson code">↺ Reset REPL</button></div><div class="repl-transcript" id="repl-transcript" aria-live="polite"></div><div class="repl-entry"><span aria-hidden="true">›</span><textarea class="repl-code" id="repl-code" rows="1" spellcheck="false" aria-label="Python REPL input" placeholder="Type Python, then press Enter"></textarea><button id="repl-run" type="button" aria-label="Run REPL input">↵</button></div><div class="repl-controls"><span>Enter sends · <code>Ctrl+L</code> clears · Tab indents · ↑↓ history · Cmd/Ctrl+Enter runs a block</span></div></div></section>
+          </div>
+          <div class="status" id="status">Edit the solution, then run focused checks.</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"><strong>Level up!</strong><span id="toast-copy">You made progress.</span></div>
+  <div class="fanfare" id="fanfare" hidden><div class="fanfare-card"><span class="trophy">🏆</span><h2>Lesson mastered!</h2><p id="fanfare-copy">You turned every check green.</p><button id="fanfare-close">Keep learning →</button></div></div>
+
+  <div class="tour" id="tour" hidden>
+    <div class="tour-spotlight" id="tour-spotlight"></div>
+    <div class="tour-card" id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <button class="tour-close" id="tour-close" aria-label="Close tour">×</button>
+      <span class="tour-kicker" id="tour-count">1 of 5</span>
+      <h2 id="tour-title">Welcome to Pyquest</h2>
+      <p id="tour-copy">This is your local Python practice IDE.</p>
+      <div class="tour-actions"><button class="tour-skip" id="tour-skip">Skip tour</button><div><button class="tour-back" id="tour-back">Back</button><button class="tour-next" id="tour-next">Next</button></div></div>
+    </div>
+  </div>
+
+  <script src="static/runtime.js"></script>
+  <script src="static/app.js"></script>
+</body>
+</html>

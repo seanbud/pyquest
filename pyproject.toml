@@ -1,0 +1,24 @@
+[project]
+name = "pyquest"
+version = "0.1.0"
+description = "A joyful, local-first Python practice workspace"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "Sean Budning"}]
+keywords = ["python", "education", "coding", "ide", "pyodide"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Education",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://seanbud.github.io/pyquest/"
+Repository = "https://github.com/seanbud/pyquest"
+Issues = "https://github.com/seanbud/pyquest/issues"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
