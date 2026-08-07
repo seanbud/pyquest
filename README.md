@@ -1,50 +1,69 @@
 # Pyquest
 
-**A joyful, local-first Python practice workspace.**
+A browser-based Python practice workspace for Alex's
+[Python: Zero to Hero](https://github.com/Alendro305/python-learning) course.
+Read a lesson, edit the starter, run its checks, and experiment in a persistent
+REPL without leaving the page.
 
 [![MIT license](https://img.shields.io/badge/license-MIT-22c55e.svg)](LICENSE)
+[![Validate](https://github.com/seanbud/pyquest/actions/workflows/ci.yml/badge.svg)](https://github.com/seanbud/pyquest/actions/workflows/ci.yml)
 [![Deploy](https://github.com/seanbud/pyquest/actions/workflows/pages.yml/badge.svg)](https://github.com/seanbud/pyquest/actions/workflows/pages.yml)
 
-[Try Pyquest in your browser](https://seanbud.github.io/pyquest/) ·
+**[Open Pyquest](https://seanbud.github.io/pyquest/)** ·
 [Roadmap](ROADMAP.md) · [Course format](docs/COURSE_FORMAT.md)
 
-Pyquest turns an exercise repository into a focused read → build → run → learn
-loop. It combines a polished split workspace, immediate test feedback, a real
-stateful Python REPL, and playful progress rewards without requiring an account
-or sending learner code to an application server.
+<img src="docs/images/pyquest-repl.jpg" alt="Pyquest showing the Dictionaries lesson, Python editor, and an active REPL where a scores dictionary is created, updated, inspected, and recalled from command history." width="960">
 
-The first course integration covers 18 lessons from
-[Alex's Python: Zero to Hero](https://github.com/Alendro305/python-learning):
-variables, numbers, strings, conditionals, loops, functions, collections,
-comprehensions, sorting, closures, higher-order functions, decorators,
-`functools`, and type hints.
+## Included
 
-## What feels good already
+- Resizable lesson, editor, and results panes
+- Rendered Markdown instructions and focused checks
+- Python highlighting, line numbers, indentation guides, and editor shortcuts
+- Clickable test results with captured output and readable tracebacks
+- Stateful REPL with command history and expandable Python values
+- Local drafts, progress, XP, optional sound, and reduced-motion support
+- Browser execution with Pyodide; native execution with CPython and pytest
 
-- Resizable problem/editor and editor/results splits inspired by modern coding tools
-- Rendered Markdown lessons beside an editable Python workspace
-- Line numbers, syntax highlighting, indentation guides, smart indentation,
-  completion suggestions, and useful keyboard shortcuts
-- Individual clickable checks with captured output and readable tracebacks
-- Full-frame stateful REPL with command history and expandable values
-- Local drafts, progress, XP, streaks, optional sound, and reduced-motion support
-- A first-run product tour and responsive narrow-screen layout
+## Course coverage
 
-## Use the public app
+Pyquest currently supports **18 of Alex's 50 lessons**.
 
-Visit **[seanbud.github.io/pyquest](https://seanbud.github.io/pyquest/)**, choose
-a lesson, edit the starter, and select **Run checks**. The first run downloads a
-browser Python runtime; later runs are faster. Course files come from Alex's
-original public repository, and execution stays in your browser.
+### Available now — lessons 1–18
 
-Browser mode supports the test patterns used by the first 18 lessons: normal
-`test_*` functions, assertions, and `pytest.raises`. Use native mode for full
-pytest compatibility, native packages, or offline work after setup.
+| Lessons | Topics |
+| --- | --- |
+| 1–6 · Fundamentals | Variables, types, f-strings; numbers and operators; strings and slicing; conditionals and truthiness; loops, `range`, and `enumerate`; functions, defaults, `*args`, and `**kwargs` |
+| 7–12 · Collections | Lists; tuples and unpacking; dictionaries; sets; comprehensions; sorting with keys |
+| 13–18 · Functions in depth | Scope, closures, and LEGB; first-class functions and `lambda`; decorators; decorator arguments and `functools.wraps`; `partial`, `reduce`, and `lru_cache`; type hints and `typing` |
 
-## Run the native workspace
+### Not yet available — lessons 19–50
 
-Requirements: Python 3.11+ (3.13 recommended),
-[uv](https://docs.astral.sh/uv/), and a checkout of the source course.
+These assignments exist in Alex's course but have not yet been integrated into
+Pyquest.
+
+| Lessons | Topics |
+| --- | --- |
+| 19–25 · Objects and the data model | Classes; dunder methods; properties and encapsulation; inheritance and `super()`; dataclasses; operator overloading and ordering; protocols, ABCs, and duck typing |
+| 26–31 · Iteration, errors, and context | Iterator protocol; generators and `yield`; `itertools`; exceptions and custom errors; context managers and `contextlib`; modules, packages, and imports |
+| 32–37 · Data and parsing | Files and `pathlib`; parsing records; regular expressions; CSV and tabular data; JSON; dates and times |
+| 38–41 · Concurrency | Threads and shared state; `concurrent.futures`; multiprocessing; `async`, `await`, and `asyncio` |
+| 42–45 · Web, databases, and testing | HTTP clients; building an HTTP service; SQLite and SQL; pytest fixtures, parametrization, and mocking |
+| 46–50 · Automation and capstone | CLI tools with `argparse`; `subprocess`; filesystem automation; logging and configuration; multi-source automation pipeline capstone |
+
+## Use the browser app
+
+Open **[seanbud.github.io/pyquest](https://seanbud.github.io/pyquest/)** and
+choose a lesson. The first execution downloads Pyodide; learner code then runs
+in the browser.
+
+Browser mode supports the patterns used by lessons 1–18: plain `test_*`
+functions, assertions, and `pytest.raises`. Use native mode for full pytest,
+native packages, or offline work after setup.
+
+## Run locally
+
+Requirements: Python 3.11+ (3.13 recommended) and
+[uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/seanbud/pyquest.git
@@ -55,40 +74,37 @@ uv pip install pytest
 .venv/bin/python server.py --port 8765
 ```
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765). You can instead set
-`PYQUEST_COURSE_ROOT=/path/to/python-learning` to use an existing checkout.
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765). To reuse an existing
+course checkout, set `PYQUEST_COURSE_ROOT=/path/to/python-learning`.
 
-The local runner executes learner code on your machine. It binds to localhost
-by default and must not be exposed as a public service; see [SECURITY.md](SECURITY.md).
+The local runner executes code on your machine. It is not a hardened sandbox;
+keep it bound to localhost. See [SECURITY.md](SECURITY.md).
 
-## Keyboard highlights
+## Shortcuts
 
-- `Ctrl/Cmd + Enter` — run focused checks
-- `Ctrl/Cmd + /` — toggle line comments
-- `Tab` / `Shift + Tab` — indent or outdent
-- `Ctrl/Cmd + Space` — show completions
-- `↑` / `↓` — REPL command history
-- `Ctrl + L` — clear the REPL transcript
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl/Cmd + Enter` | Run focused checks |
+| `Ctrl/Cmd + /` | Toggle line comments |
+| `Tab` / `Shift + Tab` | Indent or outdent |
+| `Ctrl/Cmd + Space` | Show completions |
+| `↑` / `↓` | Navigate REPL history |
+| `Ctrl + L` | Clear the REPL transcript |
 
-## Build a different course
+## Add another course
 
-Pyquest deliberately separates the learning interface from course content.
-Point `PYQUEST_COURSE_MANIFEST` and `PYQUEST_COURSE_ROOT` at a compatible
-manifest and checkout to adapt another repository without changing its files.
-See [the manifest contract](docs/COURSE_FORMAT.md) and
+Pyquest keeps its interface separate from course content. A versioned
+`course.json` points to lesson files, tests, and demos in another repository.
+See the [manifest format](docs/COURSE_FORMAT.md) and
 [architecture](docs/ARCHITECTURE.md).
 
-The planned v2 format grows this seam into multi-file workspaces, task graphs,
-fixtures, and interactive visualizers—enough to teach web apps, data pipelines,
-or other project-shaped skills in the same interface.
+Multi-file workspaces and project pipelines are planned in the
+[roadmap](ROADMAP.md).
 
 ## Attribution and license
 
-Pyquest's interface and runtime are released under the [MIT License](LICENSE).
-The course instructions, starters, tests, and demos are authored in
-[Alendro305/python-learning](https://github.com/Alendro305/python-learning), are
-not distributed in this repository, and are not covered by Pyquest's license.
-The upstream repository currently declares no license. Read [NOTICE.md](NOTICE.md)
-for the exact boundary.
-
-Contributions are welcome; start with [CONTRIBUTING.md](CONTRIBUTING.md).
+The Pyquest interface and runtime use the [MIT License](LICENSE). Course
+instructions, starters, tests, and demos belong to
+[Alendro305/python-learning](https://github.com/Alendro305/python-learning).
+They are fetched from the original repository and are not distributed or
+relicensed by Pyquest. See [NOTICE.md](NOTICE.md).
