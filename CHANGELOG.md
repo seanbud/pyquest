@@ -2,6 +2,16 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.2] - 2026-08-07
+
+### Added
+
+- Subtle leading-whitespace markers: dots for spaces and arrows for tabs.
+- Live warnings for mixed tab/space styles and uneven indentation levels.
+- Plain-language feedback for `TabError` and `IndentationError`, including the
+  relevant line when Python reports one.
+- One-click conversion of leading tabs to 4-space tab stops.
+
 ## [0.1.1] - 2026-08-07
 
 ### Changed

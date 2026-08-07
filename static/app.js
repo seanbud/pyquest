@@ -55,10 +55,13 @@ function renderMarkdown(markdown) {
 }
 
 function highlightPython(source) {
-  let html = ""; let i = 0; const span = (kind, value) => `<span class="tok-${kind}">${escapeHtml(value)}</span>`;
+  let html = ""; let i = 0; let lineStart = true; const span = (kind, value) => `<span class="tok-${kind}">${escapeHtml(value)}</span>`;
   while (i < source.length) {
     const char = source[i];
-    if (char === "\n") { html += "\n"; i++; continue; }
+    if (char === "\n") { html += "\n"; i++; lineStart = true; continue; }
+    if (lineStart && char === " ") { html += '<span class="ws-space"> </span>'; i++; continue; }
+    if (lineStart && char === "\t") { html += '<span class="ws-tab">\t</span>'; i++; continue; }
+    lineStart = false;
     if (char === "#") { const end = source.indexOf("\n", i); const stop = end < 0 ? source.length : end; html += span("comment", source.slice(i, stop)); i = stop; continue; }
     if (char === "\"" || char === "'") { const quote = char; const triple = source.slice(i, i + 3) === quote.repeat(3); const close = triple ? quote.repeat(3) : quote; let end = i + (triple ? 3 : 1); while (end < source.length) { if (source[end] === "\\") { end += 2; continue; } if (source.slice(end, end + close.length) === close) { end += close.length; break; } end++; } html += span("string", source.slice(i, end)); i = end; continue; }
     if (/[A-Za-z_]/.test(char)) { const match = source.slice(i).match(/^[A-Za-z_]\w*/)[0]; html += span(keywords.has(match) ? "keyword" : builtins.has(match) ? "builtin" : "plain", match); i += match.length; continue; }
@@ -68,11 +71,43 @@ function highlightPython(source) {
   }
   return html + "\n";
 }
+function indentationColumns(leading) { let column = 0; for (const char of leading) column += char === "\t" ? 4 - column % 4 : 1; return column; }
+function indentationInfo(source) {
+  const tabLines = []; const spaceLines = []; const mixedLines = []; const unevenLines = [];
+  source.split("\n").forEach((line, index) => {
+    if (!line.trim()) return; const leading = (line.match(/^[ \t]+/) || [""])[0]; if (!leading) return;
+    const lineNumber = index + 1; const hasTabs = leading.includes("\t"); const hasSpaces = leading.includes(" ");
+    if (hasTabs) tabLines.push(lineNumber); if (hasSpaces) spaceLines.push(lineNumber); if (hasTabs && hasSpaces) mixedLines.push(lineNumber);
+    const column = indentationColumns(leading);
+    if (column % 4) unevenLines.push(lineNumber);
+  });
+  const mixedStyles = tabLines.length > 0 && spaceLines.length > 0; const risky = mixedStyles || mixedLines.length > 0 || unevenLines.length > 0;
+  let label = "Spaces: 4"; let detail = "Leading dots are spaces; arrows are tabs.";
+  if (mixedLines.length) { label = `Mixed indent · L${mixedLines[0]}`; detail = `Line ${mixedLines[0]} contains both tabs and spaces.`; }
+  else if (mixedStyles) { label = "Tabs + spaces"; detail = `Tab-indented lines (${tabLines.slice(0, 4).join(", ")}) and space-indented lines (${spaceLines.slice(0, 4).join(", ")}) are mixed.`; }
+  else if (unevenLines.length) { label = `Uneven indent · L${unevenLines[0]}`; detail = `Line ${unevenLines[0]} does not align to a 4-space indentation level.`; }
+  else if (tabLines.length) { label = "Tabs shown as →"; detail = "This file uses tabs. Select here to convert leading tabs to 4-space stops."; }
+  return {tabLines, spaceLines, mixedLines, unevenLines, mixedStyles, risky, label, detail};
+}
+function updateIndentationStatus(source) {
+  const info = indentationInfo(source); const status = $("indent-status"); status.textContent = info.label; status.title = info.detail; status.classList.toggle("warning", info.risky || info.tabLines.length > 0); status.disabled = info.tabLines.length === 0; return info;
+}
+function leadingTabsToSpaces(source) {
+  return source.split("\n").map(line => {
+    const leading = (line.match(/^[ \t]+/) || [""])[0]; if (!leading.includes("\t")) return line;
+    let column = 0; let replacement = ""; for (const char of leading) { const width = char === "\t" ? 4 - column % 4 : 1; replacement += " ".repeat(width); column += width; }
+    return replacement + line.slice(leading.length);
+  }).join("\n");
+}
+function fixIndentation() {
+  const code = $("code"); const updated = leadingTabsToSpaces(code.value); if (updated === code.value) return;
+  code.value = updated; state.drafts[state.lesson] = updated; saveProgress(); updateEditor(); $("saved-state").textContent = "Indentation fixed"; $("indent-fix").hidden = true; code.focus();
+}
 function scopeGuides(source) {
   const lines = source.split("\n"); const guides = []; const scopes = []; let previous = null;
   lines.forEach((line, index) => {
     if (!line.trim() || line.trim().startsWith("#")) return;
-    const indent = (line.match(/^ */) || [""])[0].length;
+    const indent = indentationColumns((line.match(/^[ \t]*/) || [""])[0]);
     while (scopes.length && indent < scopes[scopes.length - 1].indent) { const scope = scopes.pop(); scope.end = index; guides.push(scope); }
     if (previous && previous.endsBlock && indent > previous.indent) scopes.push({indent, start: index, end: lines.length});
     previous = {indent, endsBlock: /:\s*(#.*)?$/.test(line.trim())};
@@ -85,7 +120,7 @@ function updateActiveLine() {
   $("active-line").style.transform = `translateY(${16 + line * 21.45 - code.scrollTop}px)`;
   $("scope-guides").querySelectorAll("i").forEach(guide => guide.classList.toggle("is-active", Number(guide.dataset.scopeStart) <= line && line < Number(guide.dataset.scopeEnd)));
 }
-function updateEditor() { const value = $("code").value; $("highlight-code").innerHTML = highlightPython(value); const count = Math.max(1, value.split("\n").length); $("lines").innerHTML = Array.from({length: count}, (_, index) => index + 1).join("<br>"); $("scope-guides").innerHTML = scopeGuides(value); syncEditorScroll(); }
+function updateEditor() { const value = $("code").value; $("highlight-code").innerHTML = highlightPython(value); updateIndentationStatus(value); const count = Math.max(1, value.split("\n").length); $("lines").innerHTML = Array.from({length: count}, (_, index) => index + 1).join("<br>"); $("scope-guides").innerHTML = scopeGuides(value); syncEditorScroll(); }
 function syncEditorScroll() { const code = $("code"); const transform = `translate(${-code.scrollLeft}px, ${-code.scrollTop}px)`; $("highlight").style.transform = ""; $("highlight-code").style.transform = transform; $("scope-guides").style.transform = ""; $("scope-guides").querySelectorAll("i").forEach(guide => { guide.style.transform = transform; }); $("lines").scrollTop = code.scrollTop; updateActiveLine(); }
 function showCompletions() {
   const code = $("code"); const before = code.value.slice(0, code.selectionStart); const match = before.match(/[A-Za-z_]\w*$/); const prefix = match ? match[0].toLowerCase() : ""; const choices = completions.filter(item => item.toLowerCase().startsWith(prefix)).slice(0, 8);
@@ -118,7 +153,7 @@ async function loadLesson(id) {
   closeRepl();
   const item = await get(`/api/lessons/${id}`); state.lesson = item.id; state.starter = item.code;
   $("lesson-number").textContent = `Lesson ${item.id} of ${state.lessons.length || 4}`; $("title").textContent = item.title; $("focus").textContent = item.focus; $("tag").textContent = item.tag; $("file-name").textContent = item.file; $("instructions").innerHTML = renderMarkdown(item.readme); $("goal").textContent = item.goal; $("coach-copy").textContent = item.hint; $("code").value = state.drafts[id] ?? item.code; updateEditor();
-  state.logs = {}; state.testCases = []; state.replSource = ""; state.replHistory = []; state.replHistoryIndex = -1; state.replHistoryDraft = ""; $("test-list-card").hidden = true; $("test-list").innerHTML = ""; $("issue-card").className = "issue-card"; $("issue-kicker").textContent = "Next step"; $("issue-title").textContent = "Your first useful clue will appear here."; $("issue-output").textContent = "Run the focused checks to see the first actionable result."; $("repl-code").value = ""; $("repl-transcript").innerHTML = ""; $("repl-source").textContent = "Open the REPL to load this lesson."; $("run-kind").textContent = "Ready"; $("status").textContent = state.completed.has(id) ? "Completed — revisit it or move forward." : "Edit the solution, then run focused checks."; $("status").className = "status"; $("next").hidden = true; $("completion-chip").textContent = state.completed.has(id) ? "✓ Solved" : "In progress"; $("completion-chip").classList.toggle("complete", state.completed.has(id)); $("saved-state").textContent = "Saved locally"; setLogView("console");
+  state.logs = {}; state.testCases = []; state.replSource = ""; state.replHistory = []; state.replHistoryIndex = -1; state.replHistoryDraft = ""; $("test-list-card").hidden = true; $("test-list").innerHTML = ""; $("issue-card").className = "issue-card"; $("issue-kicker").textContent = "Next step"; $("issue-title").textContent = "Your first useful clue will appear here."; $("issue-output").textContent = "Run the focused checks to see the first actionable result."; $("indent-fix").hidden = true; $("repl-code").value = ""; $("repl-transcript").innerHTML = ""; $("repl-source").textContent = "Open the REPL to load this lesson."; $("run-kind").textContent = "Ready"; $("status").textContent = state.completed.has(id) ? "Completed — revisit it or move forward." : "Edit the solution, then run focused checks."; $("status").className = "status"; $("next").hidden = true; $("completion-chip").textContent = state.completed.has(id) ? "✓ Solved" : "In progress"; $("completion-chip").classList.toggle("complete", state.completed.has(id)); $("saved-state").textContent = "Saved locally"; setLogView("console");
   document.querySelectorAll(".lesson").forEach(button => button.classList.toggle("selected", Number(button.dataset.id) === id));
   $("previous-lesson").disabled = id <= 1; $("next-lesson").disabled = id >= state.lessons.length; setDescriptionTab(false); $("problem-scroll").scrollTop = 0;
 }
@@ -183,6 +218,17 @@ function firstProblem(text) {
   if (marker < 0) return lines.filter(Boolean).slice(0, 9).join("\n") || "No error text was produced.";
   const start = Math.max(0, marker - 3); const end = Math.min(lines.length, marker + 4); return lines.slice(start, end).join("\n");
 }
+function indentationGuidance(output, source) {
+  if (!/(?:TabError|IndentationError|inconsistent use of tabs and spaces|unindent does not match|unexpected indent|expected an indented block)/i.test(output || "")) return null;
+  const info = indentationInfo(source); const lineMatches = [...(output || "").matchAll(/line (\d+)/gi)]; const line = lineMatches.at(-1)?.[1]; const notes = ["Python stopped before the checks could run because the block indentation does not line up."];
+  if (line) notes.push(`Start at line ${line}.`);
+  if (info.mixedLines.length) notes.push(`Line ${info.mixedLines[0]} contains both tab and space characters.`);
+  else if (info.mixedStyles) notes.push("This file uses tabs on some indented lines and spaces on others.");
+  else if (info.unevenLines.length) notes.push(`Line ${info.unevenLines[0]} does not land on a 4-space indentation level.`);
+  notes.push("Use 4 spaces for each indentation level. Subtle dots mark spaces; arrows mark tabs.");
+  if (info.tabLines.length) notes.push("Select “Convert leading tabs to 4 spaces” for a safe indentation-only cleanup.");
+  return {text: notes.join("\n\n"), canFix: info.tabLines.length > 0};
+}
 function setLogView(view) {
   const wasRepl = state.logView === "repl"; state.logView = view; const repl = view === "repl"; const text = state.logs[view] || (view === "error" ? "No errors were reported." : view === "console" ? "No console output was produced." : "No log output was produced.");
   if (repl && !wasRepl) { state.replPreviousHeight = Number($("results-resizer").getAttribute("aria-valuenow")); setResultsHeight(99_999); }
@@ -225,6 +271,7 @@ function parseTestCases(raw, fileName) {
 }
 function selectTestCase(index, switchLog = true) {
   const item = state.testCases[index]; if (!item) return;
+  $("indent-fix").hidden = true;
   document.querySelectorAll(".test-case").forEach(button => button.classList.toggle("selected", Number(button.dataset.testIndex) === index));
   const passed = item.status === "passed"; $("issue-card").className = `issue-card ${passed ? "success" : "failure"}`; $("issue-kicker").textContent = passed ? "Passed" : "Selected check"; $("issue-title").textContent = item.name; $("issue-output").innerHTML = terminalMarkup(passed ? "This check passed. Keep going." : item.block);
   if (switchLog) setLogView(passed ? "full" : "error");
@@ -245,7 +292,9 @@ function renderResultDetails(result, action, stats) {
   const full = action === "tests" ? fullLog(raw, stderr, action, result.exit_code) : fullLog(stdout, stderr, action, result.exit_code);
   state.logs = {error: errors, console: consoleOutput, full}; const issue = result.ok ? (action === "tests" ? `${stats.passed} focused checks passed. There is nothing to fix.` : consoleOutput || "The demo finished without errors.") : firstProblem(errors || raw);
   $("issue-card").className = `issue-card ${result.ok ? "success" : "failure"}`; $("issue-kicker").textContent = result.ok ? "All clear" : "Start here"; $("issue-title").textContent = result.ok ? "Your run completed successfully." : "First actionable error"; $("issue-output").innerHTML = terminalMarkup(issue);
-  $("log-error").textContent = errors ? "Errors" : "Errors · none"; $("log-console").textContent = consoleOutput ? "Console" : "Console · none"; setLogView("console"); renderTestList(raw, action, stats);
+  $("indent-fix").hidden = true; $("log-error").textContent = errors ? "Errors" : "Errors · none"; $("log-console").textContent = consoleOutput ? "Console" : "Console · none"; setLogView("console"); renderTestList(raw, action, stats);
+  const indentation = result.ok ? null : indentationGuidance(errors || raw, $("code").value);
+  if (indentation) { $("issue-card").className = "issue-card failure"; $("issue-kicker").textContent = "Indentation"; $("issue-title").textContent = "Python could not read this block"; $("issue-output").textContent = indentation.text; $("indent-fix").hidden = !indentation.canFix; $("feedback-summary").textContent = "Indentation stopped this run. Fix the whitespace, then run the checks again."; $("feedback-summary").className = "feedback-summary failure"; }
 }
 function replWelcome() { $("repl-transcript").innerHTML = '<div class="repl-welcome"><strong>Fresh Python session</strong><br>Your lesson functions are loaded. Try an expression like <code>sum_to(10)</code>, create a variable, then use it on the next line.</div>'; }
 function resizeReplInput() { const input = $("repl-code"); input.style.height = "auto"; input.style.height = `${Math.min(180, Math.max(42, input.scrollHeight))}px`; }
@@ -363,6 +412,7 @@ document.querySelectorAll(".log-tab").forEach(button => button.addEventListener(
 $("repl-run").addEventListener("click", runRepl); $("repl-restart").addEventListener("click", resetRepl); $("repl-code").addEventListener("input", resizeReplInput); $("repl-code").addEventListener("keydown", event => { const input = $("repl-code"); const lineStart = input.value.lastIndexOf("\n", input.selectionStart - 1) + 1; const line = input.value.slice(lineStart, input.selectionStart); if (event.ctrlKey && event.key.toLowerCase() === "l") { event.preventDefault(); clearReplTranscript(); return; } if (event.key === "Tab") { event.preventDefault(); indentReplInput(event.shiftKey); return; } if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "ArrowUp") { event.preventDefault(); recallReplHistory(-1); return; } if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "ArrowDown") { event.preventDefault(); recallReplHistory(1); return; } if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); runRepl(); return; } if (event.key === "Enter" && !event.shiftKey && /:\s*(#.*)?$/.test(line.trim())) { event.preventDefault(); input.setRangeText(`\n${(line.match(/^\s*/) || [""])[0]}    `, input.selectionStart, input.selectionEnd, "end"); resizeReplInput(); return; } if (event.key === "Enter" && !event.shiftKey && input.value.includes("\n") && !line.trim()) { event.preventDefault(); runRepl(); return; } if (event.key === "Enter" && !event.shiftKey && input.value.includes("\n")) { event.preventDefault(); input.setRangeText(`\n${(line.match(/^\s*/) || [""])[0]}`, input.selectionStart, input.selectionEnd, "end"); resizeReplInput(); return; } if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); runRepl(); } });
 $("next").addEventListener("click", () => { $("fanfare").hidden = true; if (state.lesson < state.lessons.length) loadLesson(state.lesson + 1); }); $("fanfare-close").addEventListener("click", () => { $("fanfare").hidden = true; });
 $("reset").addEventListener("click", () => { if (!confirm("Reset this lesson back to its starter code?")) return; $("code").value = state.starter; delete state.drafts[state.lesson]; updateEditor(); saveProgress(); $("saved-state").textContent = "Starter restored"; });
+$("indent-status").addEventListener("click", fixIndentation); $("indent-fix").addEventListener("click", fixIndentation);
 $("sound").addEventListener("click", () => { state.sound = !state.sound; $("sound").textContent = state.sound ? "🔊" : "🔇"; saveProgress(); });
 $("help-tour").addEventListener("click", startTour); $("tour-close").addEventListener("click", endTour); $("tour-skip").addEventListener("click", endTour); $("tour-back").addEventListener("click", () => { if (tourIndex > 0) { tourIndex--; showTourStep(); } }); $("tour-next").addEventListener("click", () => { if (tourIndex === tourSteps.length - 1) endTour(); else { tourIndex++; showTourStep(); } });
 function saveEditorDraft() { state.drafts[state.lesson] = $("code").value; updateEditor(); saveProgress(); $("saved-state").textContent = "Saved locally"; }

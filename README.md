@@ -20,7 +20,8 @@ REPL without leaving the page.
 
 - Resizable lesson, editor, and results panes
 - Rendered Markdown instructions and focused checks
-- Python highlighting, line numbers, indentation guides, and editor shortcuts
+- Python highlighting, line numbers, indentation guides, whitespace markers,
+  and editor shortcuts
 - Clickable test results with captured output and readable tracebacks
 - Stateful REPL with command history and expandable Python values
 - Local drafts, progress, XP, optional sound, and reduced-motion support

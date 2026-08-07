@@ -6,7 +6,7 @@
   <meta name="description" content="A joyful, local-first Python practice workspace with lessons, tests, and a stateful REPL.">
   <meta name="theme-color" content="#171717">
   <title>Pyquest — Python practice IDE</title>
-  <link rel="stylesheet" href="static/styles.css?v=0.1.1">
+  <link rel="stylesheet" href="static/styles.css?v=0.1.2">
 </head>
 <body>
   <header class="appbar" data-tour="toolbar">
@@ -77,7 +77,7 @@
         <pre class="editor-highlight" id="highlight" aria-hidden="true"><code id="highlight-code"></code></pre>
         <textarea id="code" spellcheck="false" aria-label="Editable Python code"></textarea>
         <div class="completion" id="completion" hidden></div>
-        <div class="editor-status"><span>Ctrl/Cmd + Enter to check</span><span>Ctrl/Cmd + Space to complete</span></div>
+        <div class="editor-status"><span>Ctrl/Cmd + Enter to check</span><button class="indent-status" id="indent-status" type="button" disabled title="Leading dots are spaces; arrows are tabs.">Spaces: 4</button><span>Ctrl/Cmd + Space to complete</span></div>
       </div>
 
       <section class="results-card collapsed" id="results-card" data-tour="results">
@@ -86,7 +86,7 @@
         <div class="results-body" id="results-body">
           <div class="run-stack"><div class="run-visual" id="run-visual"><div class="run-top"><strong id="run-label">Ready when you are</strong><span id="run-count">0 checks</span></div><div class="run-bar"><i id="run-progress"></i></div><div class="check-dots" id="check-dots" aria-label="Test progress"></div><div class="feedback-summary" id="feedback-summary">Run the focused checks to see your progress.</div></div><section class="test-list-card" id="test-list-card" hidden><div class="test-list-head"><strong>Checks</strong><span id="test-list-summary">0 checks</span></div><div class="test-list" id="test-list" role="list" aria-label="Individual test results"></div></section></div>
           <div class="feedback-stack">
-            <section class="issue-card" id="issue-card"><div class="issue-head"><span class="issue-kicker" id="issue-kicker">Next step</span><strong id="issue-title">Your first useful clue will appear here.</strong></div><pre class="issue-output" id="issue-output">Run the focused checks to see the first actionable result.</pre></section>
+            <section class="issue-card" id="issue-card"><div class="issue-head"><span class="issue-kicker" id="issue-kicker">Next step</span><strong id="issue-title">Your first useful clue will appear here.</strong></div><pre class="issue-output" id="issue-output">Run the focused checks to see the first actionable result.</pre><button class="indent-fix" id="indent-fix" type="button" hidden>Convert leading tabs to 4 spaces</button></section>
             <section class="log-card"><div class="log-tabs" role="tablist" aria-label="Run output"><button class="log-tab" id="log-error" data-log="error" role="tab" aria-selected="false">Errors</button><button class="log-tab active" id="log-console" data-log="console" role="tab" aria-selected="true">Console</button><button class="log-tab" id="log-full" data-log="full" role="tab" aria-selected="false">Full log</button><button class="log-tab repl-tab" id="log-repl" data-log="repl" role="tab" aria-selected="false">REPL</button></div><pre class="output" id="output">Your detailed output will appear here.</pre><div class="repl-panel" id="repl-panel" hidden><div class="repl-head"><div><strong>Interactive Python</strong><span id="repl-source">Starting a fresh session…</span></div><button class="repl-restart" id="repl-restart" type="button" title="Discard variables and restart from current lesson code">↺ Reset REPL</button></div><div class="repl-transcript" id="repl-transcript" aria-live="polite"></div><div class="repl-entry"><span aria-hidden="true">›</span><textarea class="repl-code" id="repl-code" rows="1" spellcheck="false" aria-label="Python REPL input" placeholder="Type Python, then press Enter"></textarea><button id="repl-run" type="button" aria-label="Run REPL input">↵</button></div><div class="repl-controls"><span>Enter sends · <code>Ctrl+L</code> clears · Tab indents · ↑↓ history · Cmd/Ctrl+Enter runs a block</span></div></div></section>
           </div>
           <div class="status" id="status">Edit the solution, then run focused checks.</div>
@@ -109,7 +109,7 @@
     </div>
   </div>
 
-  <script src="static/runtime.js?v=0.1.1"></script>
-  <script src="static/app.js?v=0.1.1"></script>
+  <script src="static/runtime.js?v=0.1.2"></script>
+  <script src="static/app.js?v=0.1.2"></script>
 </body>
 </html>

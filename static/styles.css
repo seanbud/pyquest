@@ -127,6 +127,10 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 .scope-guides i.is-active { width: 1px; background: #6a6a6a; opacity: 1; }
 .editor-highlight { position: absolute; inset: 0 0 24px 0; z-index: 2; margin: 0; padding: 16px 20px 16px 66px; overflow: hidden; color: #d4d4d4; white-space: pre; pointer-events: none; font: 13px/1.65 ui-monospace, SFMono-Regular, monospace; tab-size: 4; }
 #highlight-code { display: block; min-width: max-content; }
+.ws-space, .ws-tab { position: relative; }
+.ws-space:after, .ws-tab:after { position: absolute; left: 0; top: 0; pointer-events: none; }
+.ws-space:after { content: "·"; color: #9ca3aa; opacity: .18; }
+.ws-tab:after { content: "→"; color: #8fc5a1; opacity: .44; }
 .editor-highlight .tok-keyword { color: #4eb7ff; }
 .editor-highlight .tok-builtin { color: #4ec9b0; }
 .editor-highlight .tok-string { color: #dcdcaa; }
@@ -137,7 +141,12 @@ textarea { position: absolute; inset: 0 0 24px 0; z-index: 4; width: 100%; heigh
 textarea::selection { color: #ffffff; background: #264f78; -webkit-text-fill-color: #ffffff; }
 textarea::-moz-selection { color: #ffffff; background: #264f78; }
 .editor-shell:focus-within { box-shadow: inset 0 0 0 1px #5b5b5b; }
-.editor-status { position: absolute; right: 0; bottom: 0; left: 51px; z-index: 5; display: flex; justify-content: space-between; height: 24px; padding: 4px 10px; border-top: 1px solid #3e3e3e; color: #888; background: #252525; font-size: 9px; }
+.editor-status { position: absolute; right: 0; bottom: 0; left: 51px; z-index: 5; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 24px; padding: 0 10px; border-top: 1px solid #3e3e3e; color: #888; background: #252525; font-size: 9px; }
+.editor-status > span:last-child { text-align: right; }
+.indent-status { padding: 2px 7px; border: 0; border-radius: 4px; color: #8e9992; background: transparent; font: inherit; }
+.indent-status.warning { color: #f0cf87; background: #3a3020; }
+.indent-status:not(:disabled) { cursor: pointer; }
+.indent-status:not(:disabled):hover, .indent-status:not(:disabled):focus { color: #ffe4a8; outline: 1px solid #74633d; }
 .completion { position: absolute; z-index: 6; left: 68px; top: 48px; width: 190px; padding: 5px; border: 1px solid #526986; border-radius: 8px; background: #17243a; box-shadow: var(--shadow); }
 .completion button { display: block; width: 100%; padding: 6px 8px; border: 0; border-radius: 5px; color: var(--ink); background: transparent; text-align: left; font: 12px ui-monospace, monospace; }
 .completion button:hover, .completion button:focus { color: #102018; outline: 0; background: var(--accent); }
@@ -195,7 +204,7 @@ textarea::-moz-selection { color: #ffffff; background: #264f78; }
 .case-chevron { color: #777; font-size: 13px; }
 .feedback-stack { display: grid; min-width: 0; min-height: 0; grid-template-rows: minmax(126px, .95fr) minmax(0, 1.05fr); gap: 10px; }
 .issue-card, .log-card { min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #4a4a4a; border-radius: 8px; background: #1b1b1b; }
-.issue-card { display: grid; grid-template-rows: auto minmax(0, 1fr); border-left-width: 3px; }
+.issue-card { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; border-left-width: 3px; }
 .issue-card.failure { border-left-color: var(--rose); }
 .issue-card.success { border-left-color: var(--accent); }
 .issue-head { display: flex; align-items: baseline; gap: 9px; padding: 8px 10px 6px; border-bottom: 1px solid #414141; background: #292929; }
@@ -204,6 +213,9 @@ textarea::-moz-selection { color: #ffffff; background: #264f78; }
 .issue-card.failure .issue-kicker { color: var(--rose); }
 .issue-card.success .issue-kicker { color: var(--accent); }
 .issue-output, .output { min-height: 0; margin: 0; overflow: auto; padding: 9px 11px; color: #d7e2f1; background: #1b1b1b; white-space: pre-wrap; font: 11px/1.52 ui-monospace, monospace; }
+.indent-fix { justify-self: start; margin: 0 10px 9px; padding: 6px 9px; border: 1px solid #74633d; border-radius: 5px; color: #ffe4a8; background: #3a3020; font-size: 10px; font-weight: 800; }
+.indent-fix:hover, .indent-fix:focus { border-color: #a88e50; background: #493b24; }
+.indent-fix[hidden] { display: none; }
 .log-card { display: grid; grid-template-rows: 32px minmax(0, 1fr); }
 .log-tabs { display: flex; align-items: stretch; gap: 2px; padding: 3px 5px 0; border-bottom: 1px solid #414141; background: #292929; }
 .log-tab { position: relative; border: 0; padding: 0 10px; color: #aaa; background: transparent; font-size: 10px; font-weight: 800; }
