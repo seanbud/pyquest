@@ -22,7 +22,8 @@ REPL without leaving the page.
 - Rendered Markdown instructions and focused checks
 - Python highlighting, line numbers, indentation guides, whitespace markers,
   and editor shortcuts
-- Clickable test results with captured output and readable tracebacks
+- Clickable test results that jump to highlighted source lines, with captured
+  output and readable tracebacks
 - Stateful REPL with command history and expandable Python values
 - Local drafts, progress, XP, optional sound, and reduced-motion support
 - Browser execution with Pyodide; native execution with CPython and pytest

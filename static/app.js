@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { lessons: [], lesson: null, starter: "", sound: true, running: false, replRunning: false, replSession: null, replSource: "", replPreviousHeight: null, replHistory: [], replHistoryIndex: -1, replHistoryDraft: "", completed: new Set(), drafts: {}, xp: 0, streak: 0, logs: {}, logView: "console", testCases: [] };
+const state = { lessons: [], lesson: null, starter: "", sound: true, running: false, replRunning: false, replSession: null, replSource: "", replPreviousHeight: null, replHistory: [], replHistoryIndex: -1, replHistoryDraft: "", completed: new Set(), drafts: {}, xp: 0, streak: 0, logs: {}, logView: "console", testCases: [], diagnostics: [], selectedTest: -1 };
 const storageKey = "pyquest-progress-v1";
 const splitKey = "pyquest-split-v1";
 const resultsHeightKey = "pyquest-results-height-v1";
@@ -101,7 +101,7 @@ function leadingTabsToSpaces(source) {
 }
 function fixIndentation() {
   const code = $("code"); const updated = leadingTabsToSpaces(code.value); if (updated === code.value) return;
-  code.value = updated; state.drafts[state.lesson] = updated; saveProgress(); updateEditor(); $("saved-state").textContent = "Indentation fixed"; $("indent-fix").hidden = true; code.focus();
+  code.value = updated; state.drafts[state.lesson] = updated; state.diagnostics = []; state.selectedTest = -1; saveProgress(); updateEditor(); $("saved-state").textContent = "Indentation fixed"; $("indent-fix").hidden = true; code.focus();
 }
 function scopeGuides(source) {
   const lines = source.split("\n"); const guides = []; const scopes = []; let previous = null;
@@ -120,8 +120,23 @@ function updateActiveLine() {
   $("active-line").style.transform = `translateY(${16 + line * 21.45 - code.scrollTop}px)`;
   $("scope-guides").querySelectorAll("i").forEach(guide => guide.classList.toggle("is-active", Number(guide.dataset.scopeStart) <= line && line < Number(guide.dataset.scopeEnd)));
 }
-function updateEditor() { const value = $("code").value; $("highlight-code").innerHTML = highlightPython(value); updateIndentationStatus(value); const count = Math.max(1, value.split("\n").length); $("lines").innerHTML = Array.from({length: count}, (_, index) => index + 1).join("<br>"); $("scope-guides").innerHTML = scopeGuides(value); syncEditorScroll(); }
-function syncEditorScroll() { const code = $("code"); const transform = `translate(${-code.scrollLeft}px, ${-code.scrollTop}px)`; $("highlight").style.transform = ""; $("highlight-code").style.transform = transform; $("scope-guides").style.transform = ""; $("scope-guides").querySelectorAll("i").forEach(guide => { guide.style.transform = transform; }); $("lines").scrollTop = code.scrollTop; updateActiveLine(); }
+function renderDiagnostics() {
+  const selectedLine = state.testCases[state.selectedTest]?.line || (state.diagnostics.length === 1 ? state.diagnostics[0].line : null); const byLine = new Map();
+  state.diagnostics.forEach(item => { const current = byLine.get(item.line); if (!current || (current.inferred && !item.inferred)) byLine.set(item.line, item); });
+  $("editor-diagnostics").innerHTML = [...byLine.values()].map(item => `<i class="diagnostic-line${item.inferred ? " inferred" : ""}${item.line === selectedLine ? " selected" : ""}" data-line="${item.line}" style="top:${16 + (item.line - 1) * 21.45}px"></i>`).join("");
+  $("lines").querySelectorAll("span").forEach(marker => { const item = byLine.get(Number(marker.dataset.line)); marker.classList.toggle("has-diagnostic", Boolean(item)); marker.classList.toggle("inferred-diagnostic", Boolean(item?.inferred)); });
+}
+function clearEditorDiagnostics() { state.diagnostics = []; state.selectedTest = -1; renderDiagnostics(); }
+function jumpToSourceLine(line) {
+  const code = $("code"); const lines = code.value.split("\n"); const target = Math.max(1, Math.min(Number(line) || 1, lines.length));
+  let position = 0; for (let index = 1; index < target; index++) position += lines[index - 1].length + 1;
+  position += (lines[target - 1].match(/^\s*/) || [""])[0].length; code.setSelectionRange(position, position);
+  const lineTop = 16 + (target - 1) * 21.45; const visibleBottom = code.scrollTop + code.clientHeight - 42;
+  if (lineTop < code.scrollTop + 8 || lineTop > visibleBottom) code.scrollTop = Math.max(0, lineTop - code.clientHeight * .34);
+  code.focus(); syncEditorScroll(); $("saved-state").textContent = `Issue at line ${target}`;
+}
+function updateEditor() { const value = $("code").value; $("highlight-code").innerHTML = highlightPython(value); updateIndentationStatus(value); const count = Math.max(1, value.split("\n").length); $("lines").innerHTML = Array.from({length: count}, (_, index) => `<span data-line="${index + 1}">${index + 1}</span>`).join(""); $("scope-guides").innerHTML = scopeGuides(value); renderDiagnostics(); syncEditorScroll(); }
+function syncEditorScroll() { const code = $("code"); const transform = `translate(${-code.scrollLeft}px, ${-code.scrollTop}px)`; $("highlight").style.transform = ""; $("highlight-code").style.transform = transform; $("scope-guides").style.transform = ""; $("scope-guides").querySelectorAll("i").forEach(guide => { guide.style.transform = transform; }); $("editor-diagnostics").querySelectorAll("i").forEach(marker => { marker.style.transform = `translateY(${-code.scrollTop}px)`; }); $("lines").scrollTop = code.scrollTop; updateActiveLine(); }
 function showCompletions() {
   const code = $("code"); const before = code.value.slice(0, code.selectionStart); const match = before.match(/[A-Za-z_]\w*$/); const prefix = match ? match[0].toLowerCase() : ""; const choices = completions.filter(item => item.toLowerCase().startsWith(prefix)).slice(0, 8);
   if (!choices.length) { $("completion").hidden = true; return; }
@@ -152,6 +167,7 @@ function setDescriptionTab(showHint) {
 async function loadLesson(id) {
   closeRepl();
   const item = await get(`/api/lessons/${id}`); state.lesson = item.id; state.starter = item.code;
+  state.diagnostics = []; state.selectedTest = -1;
   $("lesson-number").textContent = `Lesson ${item.id} of ${state.lessons.length || 4}`; $("title").textContent = item.title; $("focus").textContent = item.focus; $("tag").textContent = item.tag; $("file-name").textContent = item.file; $("instructions").innerHTML = renderMarkdown(item.readme); $("goal").textContent = item.goal; $("coach-copy").textContent = item.hint; $("code").value = state.drafts[id] ?? item.code; updateEditor();
   state.logs = {}; state.testCases = []; state.replSource = ""; state.replHistory = []; state.replHistoryIndex = -1; state.replHistoryDraft = ""; $("test-list-card").hidden = true; $("test-list").innerHTML = ""; $("issue-card").className = "issue-card"; $("issue-kicker").textContent = "Next step"; $("issue-title").textContent = "Your first useful clue will appear here."; $("issue-output").textContent = "Run the focused checks to see the first actionable result."; $("indent-fix").hidden = true; $("repl-code").value = ""; $("repl-transcript").innerHTML = ""; $("repl-source").textContent = "Open the REPL to load this lesson."; $("run-kind").textContent = "Ready"; $("status").textContent = state.completed.has(id) ? "Completed — revisit it or move forward." : "Edit the solution, then run focused checks."; $("status").className = "status"; $("next").hidden = true; $("completion-chip").textContent = state.completed.has(id) ? "✓ Solved" : "In progress"; $("completion-chip").classList.toggle("complete", state.completed.has(id)); $("saved-state").textContent = "Saved locally"; setLogView("console");
   document.querySelectorAll(".lesson").forEach(button => button.classList.toggle("selected", Number(button.dataset.id) === id));
@@ -227,7 +243,7 @@ function indentationGuidance(output, source) {
   else if (info.unevenLines.length) notes.push(`Line ${info.unevenLines[0]} does not land on a 4-space indentation level.`);
   notes.push("Use 4 spaces for each indentation level. Subtle dots mark spaces; arrows mark tabs.");
   if (info.tabLines.length) notes.push("Select “Convert leading tabs to 4 spaces” for a safe indentation-only cleanup.");
-  return {text: notes.join("\n\n"), canFix: info.tabLines.length > 0};
+  return {text: notes.join("\n\n"), canFix: info.tabLines.length > 0, line: Number(line) || null};
 }
 function setLogView(view) {
   const wasRepl = state.logView === "repl"; state.logView = view; const repl = view === "repl"; const text = state.logs[view] || (view === "error" ? "No errors were reported." : view === "console" ? "No console output was produced." : "No log output was produced.");
@@ -257,28 +273,48 @@ function testBlock(raw, name) {
   const next = raw.slice(match.index + match[0].length).search(/\n_{5,}\s+.+?\s+_{5,}\s*$|\n=+ short test summary info/m);
   return raw.slice(match.index, next < 0 ? raw.length : match.index + match[0].length + next).trim();
 }
-function parseTestCases(raw, fileName) {
+function sourceLineFromOutput(output, fileName) {
+  const escaped = escapeRegex(fileName); const lines = [];
+  const location = new RegExp("(?:^|[\\s/\\\\])" + escaped + ":(\\d+)(?::|\\b)", "gm");
+  const traceback = /File\s+["']([^"']+)["'],\s+line\s+(\d+)/gi;
+  for (const match of (output || "").matchAll(location)) lines.push({line: Number(match[1]), index: match.index});
+  for (const match of (output || "").matchAll(traceback)) { if (match[1].split(/[\\/]/).pop() === fileName) lines.push({line: Number(match[2]), index: match.index}); }
+  return lines.sort((a, b) => a.index - b.index).at(-1)?.line || null;
+}
+function relatedFunctionLine(block, testName, source) {
+  const definitions = []; const pattern = /^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)\s*\(/gm;
+  for (const match of source.matchAll(pattern)) definitions.push({name: match[1], line: source.slice(0, match.index).split("\n").length});
+  const called = definitions.filter(item => new RegExp("\\b" + escapeRegex(item.name) + "\\s*\\(").test(block || ""));
+  if (called.length) return called.sort((a, b) => b.name.length - a.name.length)[0].line;
+  const slug = (testName || "").replace(/^test_/, "").replace(/\[[^\]]*\]$/, "");
+  const named = definitions.filter(item => slug === item.name || slug.startsWith(item.name + "_") || slug.includes("_" + item.name + "_"));
+  return named.sort((a, b) => b.name.length - a.name.length)[0]?.line || null;
+}
+function parseTestCases(raw, fileName, source) {
   const cases = []; const seen = new Set(); const summary = /^(PASSED|FAILED|ERROR)\s+(.+?)(?:\s+-\s+(.+))?$/gm;
   for (const match of raw.matchAll(summary)) {
     const status = match[1].toLowerCase(); const target = match[2].trim(); if (seen.has(target)) continue; seen.add(target);
     const name = target.split("::").pop() || target; const block = status === "passed" ? "" : testBlock(raw, name);
     const kind = block.match(/^E\s+([^\n]+)/m)?.[1]?.split(/\s{2,}/)[0] || match[3] || (status === "error" ? "Test error" : "Assertion failed");
-    const lineMatches = [...block.matchAll(new RegExp(`${escapeRegex(fileName)}:(\\d+):`, "g"))]; const line = lineMatches.at(-1)?.[1];
-    const detail = status === "passed" ? "Passed" : `${kind}${line ? ` · ${fileName}:${line}` : ""}`;
-    cases.push({status, name, detail, block: block || detail});
+    const exactLine = sourceLineFromOutput(block, fileName); const line = exactLine || relatedFunctionLine(block, name, source); const inferred = Boolean(line && !exactLine);
+    const detail = status === "passed" ? "Passed" : kind + (line ? " · " + (inferred ? "Related" : "Line") + " " + line : "");
+    cases.push({status, name, detail, block: block || detail, line, inferred});
   }
   return cases;
 }
 function selectTestCase(index, switchLog = true) {
   const item = state.testCases[index]; if (!item) return;
-  $("indent-fix").hidden = true;
+  state.selectedTest = index; $("indent-fix").hidden = true; renderDiagnostics();
   document.querySelectorAll(".test-case").forEach(button => button.classList.toggle("selected", Number(button.dataset.testIndex) === index));
+  document.querySelector(`.test-case[data-test-index="${index}"]`)?.scrollIntoView({block: "nearest"});
   const passed = item.status === "passed"; $("issue-card").className = `issue-card ${passed ? "success" : "failure"}`; $("issue-kicker").textContent = passed ? "Passed" : "Selected check"; $("issue-title").textContent = item.name; $("issue-output").innerHTML = terminalMarkup(passed ? "This check passed. Keep going." : item.block);
+  if (!passed && item.line) jumpToSourceLine(item.line);
   if (switchLog) setLogView(passed ? "full" : "error");
 }
 function renderTestList(raw, action, stats) {
-  if (action !== "tests") { $("test-list-card").hidden = true; state.testCases = []; return; }
-  state.testCases = parseTestCases(raw, $("file-name").textContent); $("test-list-card").hidden = state.testCases.length === 0;
+  if (action !== "tests") { $("test-list-card").hidden = true; state.testCases = []; clearEditorDiagnostics(); return; }
+  state.testCases = parseTestCases(raw, $("file-name").textContent, $("code").value); state.selectedTest = -1;
+  state.diagnostics = state.testCases.filter(item => item.status !== "passed" && item.line).map((item, index) => ({line: item.line, inferred: item.inferred, testIndex: index})); renderDiagnostics(); $("test-list-card").hidden = state.testCases.length === 0;
   $("test-list-summary").textContent = `${stats.passed} passed · ${stats.failed} failed`;
   $("test-list").innerHTML = state.testCases.map((item, index) => `<button class="test-case ${item.status === "passed" ? "pass" : item.status}" type="button" role="listitem" data-test-index="${index}"><i class="case-state">${item.status === "passed" ? "✓" : "!"}</i><span class="case-copy"><strong class="case-name">${escapeHtml(item.name)}</strong><small class="case-detail">${escapeHtml(item.detail)}</small></span><span class="case-chevron">›</span></button>`).join("");
   document.querySelectorAll(".test-case").forEach(button => button.addEventListener("click", () => selectTestCase(Number(button.dataset.testIndex))));
@@ -294,7 +330,8 @@ function renderResultDetails(result, action, stats) {
   $("issue-card").className = `issue-card ${result.ok ? "success" : "failure"}`; $("issue-kicker").textContent = result.ok ? "All clear" : "Start here"; $("issue-title").textContent = result.ok ? "Your run completed successfully." : "First actionable error"; $("issue-output").innerHTML = terminalMarkup(issue);
   $("indent-fix").hidden = true; $("log-error").textContent = errors ? "Errors" : "Errors · none"; $("log-console").textContent = consoleOutput ? "Console" : "Console · none"; setLogView("console"); renderTestList(raw, action, stats);
   const indentation = result.ok ? null : indentationGuidance(errors || raw, $("code").value);
-  if (indentation) { $("issue-card").className = "issue-card failure"; $("issue-kicker").textContent = "Indentation"; $("issue-title").textContent = "Python could not read this block"; $("issue-output").textContent = indentation.text; $("indent-fix").hidden = !indentation.canFix; $("feedback-summary").textContent = "Indentation stopped this run. Fix the whitespace, then run the checks again."; $("feedback-summary").className = "feedback-summary failure"; }
+  if (!result.ok && !state.diagnostics.length) { const line = sourceLineFromOutput(errors || raw, $("file-name").textContent); if (line) { state.diagnostics = [{line, inferred: false, testIndex: -1}]; renderDiagnostics(); jumpToSourceLine(line); } }
+  if (indentation) { $("issue-card").className = "issue-card failure"; $("issue-kicker").textContent = "Indentation"; $("issue-title").textContent = "Python could not read this block"; $("issue-output").textContent = indentation.text; $("indent-fix").hidden = !indentation.canFix; $("feedback-summary").textContent = "Indentation stopped this run. Fix the whitespace, then run the checks again."; $("feedback-summary").className = "feedback-summary failure"; if (indentation.line) { state.diagnostics = [{line: indentation.line, inferred: false, testIndex: -1}]; renderDiagnostics(); jumpToSourceLine(indentation.line); } }
 }
 function replWelcome() { $("repl-transcript").innerHTML = '<div class="repl-welcome"><strong>Fresh Python session</strong><br>Your lesson functions are loaded. Try an expression like <code>sum_to(10)</code>, create a variable, then use it on the next line.</div>'; }
 function resizeReplInput() { const input = $("repl-code"); input.style.height = "auto"; input.style.height = `${Math.min(180, Math.max(42, input.scrollHeight))}px`; }
@@ -373,7 +410,7 @@ async function runRepl() {
 }
 function celebrate(item) { playFanfare(); const colors = ["#72e3a1", "#ffd166", "#82c7ff", "#ff9eaa"]; if (!prefersReducedMotion) for (let i = 0; i < 30; i++) { const spark = document.createElement("i"); spark.className = "spark"; spark.style.left = `${35 + Math.random() * 30}%`; spark.style.top = `${30 + Math.random() * 15}%`; spark.style.background = colors[i % colors.length]; spark.style.setProperty("--dx", `${(Math.random() - .5) * 260}px`); document.body.appendChild(spark); setTimeout(() => spark.remove(), 900); } $("toast-copy").textContent = `+${item.reward} XP · ${item.goal}`; $("toast").classList.remove("show"); void $("toast").offsetWidth; $("toast").classList.add("show"); $("fanfare-copy").textContent = `You earned ${item.reward} XP and mastered ${item.title}.`; $("fanfare").hidden = false; }
 async function run(action) {
-  if (state.running) return; state.running = true; setResultsExpanded(true); $("run-tests").disabled = true; $("run-demo").disabled = true; state.drafts[state.lesson] = $("code").value; saveProgress(); $("saved-state").textContent = "Saved locally"; $("status").textContent = action === "tests" ? "Running your checks…" : "Running the demo…"; $("status").className = "status"; $("run-kind").textContent = action === "tests" ? "Tests running" : "Demo running"; startRunVisual(action); const started = Date.now();
+  if (state.running) return; state.running = true; clearEditorDiagnostics(); setResultsExpanded(true); $("run-tests").disabled = true; $("run-demo").disabled = true; state.drafts[state.lesson] = $("code").value; saveProgress(); $("saved-state").textContent = "Saved locally"; $("status").textContent = action === "tests" ? "Running your checks…" : "Running the demo…"; $("status").className = "status"; $("run-kind").textContent = action === "tests" ? "Tests running" : "Demo running"; startRunVisual(action); const started = Date.now();
   try { const response = await apiFetch("/api/run", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({lesson: state.lesson, action, code: $("code").value})}); const result = await response.json(); if (!response.ok) throw new Error(result.error); const wait = Math.max(0, 430 - (Date.now() - started)); if (wait) await new Promise(resolve => setTimeout(resolve, wait)); const stats = finishRunVisual(result, action); showFeedback(result, action, stats); renderResultDetails(result, action, stats); playTestTones(stats.passed, stats.failed); $("run-kind").textContent = result.ok ? "Passed" : "Needs work";
     if (result.ok && action === "tests") { const item = await get(`/api/lessons/${state.lesson}`); if (!state.completed.has(state.lesson)) { state.completed.add(state.lesson); state.xp += item.reward; state.streak += 1; $("xp").textContent = state.xp; $("streak").textContent = state.streak; saveProgress(); renderProgress(); celebrate(item); } $("completion-chip").textContent = "✓ Solved"; $("completion-chip").classList.add("complete"); $("next").hidden = state.lesson >= state.lessons.length; $("status").textContent = "Lesson complete. Excellent work."; $("status").className = "status success"; }
     else { $("status").textContent = result.ok ? "Demo finished. Run the focused checks when ready." : "Use the first failure to guide your next edit."; $("status").className = `status ${result.ok ? "success" : "failure"}`; if (!result.ok) tone("failure"); }
@@ -411,7 +448,7 @@ $("repl-launch").addEventListener("click", () => { setResultsExpanded(true); set
 document.querySelectorAll(".log-tab").forEach(button => button.addEventListener("click", () => setLogView(button.dataset.log)));
 $("repl-run").addEventListener("click", runRepl); $("repl-restart").addEventListener("click", resetRepl); $("repl-code").addEventListener("input", resizeReplInput); $("repl-code").addEventListener("keydown", event => { const input = $("repl-code"); const lineStart = input.value.lastIndexOf("\n", input.selectionStart - 1) + 1; const line = input.value.slice(lineStart, input.selectionStart); if (event.ctrlKey && event.key.toLowerCase() === "l") { event.preventDefault(); clearReplTranscript(); return; } if (event.key === "Tab") { event.preventDefault(); indentReplInput(event.shiftKey); return; } if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "ArrowUp") { event.preventDefault(); recallReplHistory(-1); return; } if (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "ArrowDown") { event.preventDefault(); recallReplHistory(1); return; } if ((event.ctrlKey || event.metaKey) && event.key === "Enter") { event.preventDefault(); runRepl(); return; } if (event.key === "Enter" && !event.shiftKey && /:\s*(#.*)?$/.test(line.trim())) { event.preventDefault(); input.setRangeText(`\n${(line.match(/^\s*/) || [""])[0]}    `, input.selectionStart, input.selectionEnd, "end"); resizeReplInput(); return; } if (event.key === "Enter" && !event.shiftKey && input.value.includes("\n") && !line.trim()) { event.preventDefault(); runRepl(); return; } if (event.key === "Enter" && !event.shiftKey && input.value.includes("\n")) { event.preventDefault(); input.setRangeText(`\n${(line.match(/^\s*/) || [""])[0]}`, input.selectionStart, input.selectionEnd, "end"); resizeReplInput(); return; } if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); runRepl(); } });
 $("next").addEventListener("click", () => { $("fanfare").hidden = true; if (state.lesson < state.lessons.length) loadLesson(state.lesson + 1); }); $("fanfare-close").addEventListener("click", () => { $("fanfare").hidden = true; });
-$("reset").addEventListener("click", () => { if (!confirm("Reset this lesson back to its starter code?")) return; $("code").value = state.starter; delete state.drafts[state.lesson]; updateEditor(); saveProgress(); $("saved-state").textContent = "Starter restored"; });
+$("reset").addEventListener("click", () => { if (!confirm("Reset this lesson back to its starter code?")) return; $("code").value = state.starter; delete state.drafts[state.lesson]; state.diagnostics = []; state.selectedTest = -1; updateEditor(); saveProgress(); $("saved-state").textContent = "Starter restored"; });
 $("indent-status").addEventListener("click", fixIndentation); $("indent-fix").addEventListener("click", fixIndentation);
 $("sound").addEventListener("click", () => { state.sound = !state.sound; $("sound").textContent = state.sound ? "🔊" : "🔇"; saveProgress(); });
 $("help-tour").addEventListener("click", startTour); $("tour-close").addEventListener("click", endTour); $("tour-skip").addEventListener("click", endTour); $("tour-back").addEventListener("click", () => { if (tourIndex > 0) { tourIndex--; showTourStep(); } }); $("tour-next").addEventListener("click", () => { if (tourIndex === tourSteps.length - 1) endTour(); else { tourIndex++; showTourStep(); } });

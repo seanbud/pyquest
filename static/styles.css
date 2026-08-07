@@ -121,7 +121,17 @@ button:focus-visible, textarea:focus-visible, [tabindex]:focus-visible { outline
 
 .editor-shell { position: relative; min-height: 0; overflow: hidden; background: #262626; }
 .editor-gutter { position: absolute; inset: 0 auto 24px 0; z-index: 3; width: 51px; overflow: hidden; padding: 16px 10px 16px 0; border-right: 1px solid #3e3e3e; color: #858585; background: #262626; text-align: right; user-select: none; font: 13px/1.65 ui-monospace, SFMono-Regular, monospace; }
+.editor-gutter span { display: block; height: 21.45px; }
+.editor-gutter span.has-diagnostic { color: #e5a1a8; font-weight: 800; }
+.editor-gutter span.has-diagnostic:before { display: inline-block; width: 5px; height: 5px; margin: 0 6px 2px 0; border-radius: 50%; content: ""; background: var(--rose); box-shadow: 0 0 7px #ff7f8d66; }
+.editor-gutter span.inferred-diagnostic { color: #dac584; }
+.editor-gutter span.inferred-diagnostic:before { background: var(--yellow); box-shadow: none; }
 .editor-active-line { position: absolute; right: 0; left: 51px; z-index: 0; height: 21.45px; background: #2d2d2d; pointer-events: none; }
+.editor-diagnostics { position: absolute; inset: 0 0 24px 51px; z-index: 1; overflow: hidden; pointer-events: none; }
+.diagnostic-line { position: absolute; right: 0; left: 0; height: 21.45px; border-left: 2px solid #b95662; background: linear-gradient(90deg, #7d303a4d, #7d303a16 58%, transparent); opacity: .72; }
+.diagnostic-line.inferred { border-left-color: #9a813c; background: linear-gradient(90deg, #6856223d, #68562212 58%, transparent); }
+.diagnostic-line.selected { border-left-color: var(--rose); background: linear-gradient(90deg, #ad3e4d70, #8e354026 62%, transparent); opacity: 1; }
+.diagnostic-line.inferred.selected { border-left-color: var(--yellow); background: linear-gradient(90deg, #77612659, #6856221f 62%, transparent); }
 .scope-guides { position: absolute; inset: 0 0 24px 0; z-index: 1; pointer-events: none; }
 .scope-guides i { position: absolute; width: 1px; min-height: 21.45px; background: #424242; opacity: .78; transition: background .12s ease, opacity .12s ease; }
 .scope-guides i.is-active { width: 1px; background: #6a6a6a; opacity: 1; }

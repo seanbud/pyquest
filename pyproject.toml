@@ -1,6 +1,6 @@
 [project]
 name = "pyquest"
-version = "0.1.2"
+version = "0.1.3"
 description = "A joyful, local-first Python practice workspace"
 readme = "README.md"
 requires-python = ">=3.11"

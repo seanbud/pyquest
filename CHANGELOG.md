@@ -2,6 +2,15 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.3] - 2026-08-07
+
+### Added
+
+- Editor-line diagnostics for failed checks and runtime errors.
+- Click-to-jump navigation from a failed check to the relevant source line.
+- Honest fallback highlighting of a likely related function when pytest does
+  not provide an exact learner-source traceback line.
+
 ## [0.1.2] - 2026-08-07
 
 ### Added
