@@ -12,6 +12,8 @@ REPL without leaving the page.
 ### **[Open Pyquest](https://seanbud.github.io/pyquest/)** 
 [Roadmap](ROADMAP.md) · [Course format](docs/COURSE_FORMAT.md)
 
+## Screenshot
+
 <img src="docs/images/pyquest-repl.jpg" alt="Pyquest showing the Dictionaries lesson, Python editor, and an active REPL where a scores dictionary is created, updated, inspected, and recalled from command history." width="960">
 
 ## Included
