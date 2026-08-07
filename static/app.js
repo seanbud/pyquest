@@ -253,12 +253,24 @@ function indentReplInput(outdent) {
   const input = $("repl-code"); const start = input.selectionStart; const end = input.selectionEnd; const lineStart = input.value.lastIndexOf("\n", start - 1) + 1; const lineEndAnchor = end > start && input.value[end - 1] === "\n" ? end - 1 : end; const lineEnd = input.value.indexOf("\n", lineEndAnchor); const blockEnd = lineEnd < 0 ? input.value.length : lineEnd; const lines = input.value.slice(lineStart, blockEnd).split("\n");
   const replacement = lines.map(line => outdent ? line.replace(/^ {1,4}/, "") : `    ${line}`).join("\n"); input.setRangeText(replacement, lineStart, blockEnd, "select"); resizeReplInput();
 }
+function replHistoryBoundaryCue() {
+  const entry = $("repl-code").closest(".repl-entry");
+  entry.classList.remove("history-bottom"); void entry.offsetWidth; entry.classList.add("history-bottom");
+  window.setTimeout(() => entry.classList.remove("history-bottom"), 180);
+  const audio = audioReady(); if (audio) playTone(240, .045, audio.currentTime, "sine", .008);
+}
 function recallReplHistory(direction) {
-  if (!state.replHistory.length) return; const input = $("repl-code");
-  if (state.replHistoryIndex < 0) state.replHistoryDraft = input.value;
-  if (direction < 0) state.replHistoryIndex = state.replHistoryIndex < 0 ? state.replHistory.length - 1 : Math.max(0, state.replHistoryIndex - 1);
-  else state.replHistoryIndex = state.replHistoryIndex >= state.replHistory.length - 1 ? -1 : state.replHistoryIndex + 1;
+  const input = $("repl-code");
+  if (!state.replHistory.length) { if (direction > 0) replHistoryBoundaryCue(); return; }
+  if (direction < 0) {
+    if (state.replHistoryIndex < 0) state.replHistoryDraft = input.value;
+    state.replHistoryIndex = state.replHistoryIndex < 0 ? state.replHistory.length - 1 : Math.max(0, state.replHistoryIndex - 1);
+  } else {
+    if (state.replHistoryIndex < 0) { replHistoryBoundaryCue(); return; }
+    state.replHistoryIndex = state.replHistoryIndex >= state.replHistory.length - 1 ? -1 : state.replHistoryIndex + 1;
+  }
   input.value = state.replHistoryIndex < 0 ? state.replHistoryDraft : state.replHistory[state.replHistoryIndex]; input.selectionStart = input.selectionEnd = input.value.length; resizeReplInput();
+  if (state.replHistoryIndex < 0) replHistoryBoundaryCue();
 }
 function renderReplValue(value, label = "") {
   if (!value) return "";

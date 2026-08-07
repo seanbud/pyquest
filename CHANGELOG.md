@@ -2,6 +2,14 @@
 
 All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.1.1] - 2026-08-07
+
+### Changed
+
+- Faded the empty REPL prompt so it reads clearly as placeholder guidance.
+- Stopped Down Arrow at the newest history position instead of wrapping to the
+  oldest command, with a restrained visual and optional audio boundary cue.
+
 ## [0.1.0] - 2026-08-07
 
 ### Added

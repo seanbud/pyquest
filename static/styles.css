@@ -239,7 +239,10 @@ textarea::-moz-selection { color: #ffffff; background: #264f78; }
 .repl-entry { display: grid; grid-template-columns: 22px minmax(0, 1fr) 34px; align-items: stretch; border-top: 1px solid #414141; background: #202020; }
 .repl-entry > span { display: grid; place-items: start center; padding-top: 10px; color: var(--accent); font: 18px/1 ui-monospace, monospace; }
 textarea.repl-code { position: static; z-index: auto; display: block; width: 100%; min-height: 42px; max-height: 180px; padding: 10px 4px; border: 0; outline: 0; color: #f0f0f0; caret-color: #fff; background: transparent; -webkit-text-fill-color: #f0f0f0; white-space: pre-wrap; overflow: auto; font: 12px/1.5 ui-monospace, monospace; }
+textarea.repl-code::placeholder { color: #7d827f; opacity: .58; -webkit-text-fill-color: #7d827f; }
 textarea.repl-code::selection { color: #fff; background: #264f78; -webkit-text-fill-color: #fff; }
+.repl-entry.history-bottom { border-top-color: #52685a; background: #222722; box-shadow: inset 0 -1px #405246; }
+.repl-entry.history-bottom > span { color: #8fc5a1; }
 .repl-entry button { margin: 7px 7px 7px 0; border: 1px solid #56916b; border-radius: 5px; color: #dff8e7; background: #244331; font-weight: 800; }
 .repl-entry button:hover:not(:disabled) { background: #315b40; }
 .repl-entry button:disabled { cursor: wait; opacity: .6; }
